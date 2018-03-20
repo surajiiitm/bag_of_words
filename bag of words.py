@@ -86,7 +86,93 @@ clean_train_review = []
 for i in range(0 , numReviews):
     # Call our function for each one, and add the result to the list of
     # clean reviews
+    if ((i+1)%1000 == 0 ):
+        print("review of %d of %d" %(i+1, numReviews))
     clean_train_review.append(review_to_words(train["review"][i]))
+
+## Now that we have our training reviews tidied up, how do we convert them to 
+## some kind of numeric representation for machine learning? One common approach
+## is called a Bag of Words. The Bag of Words model learns a vocabulary from 
+## all of the documents, then models each document by counting the number of 
+## times each word appears.
+    
+# Initialize the "CountVectorizer" object, which is scikit-learn's
+# bag of words tool.
+
+from sklearn.feature_extraction.text import CountVectorizer
+
+vectorizer = CountVectorizer(analyzer="word",
+                             tokenizer= None,
+                             preprocessor = None,
+                             stop_words = None,
+                             max_features = 5000)
+
+
+# fit_transform() does two functions: First, it fits the model
+# and learns the vocabulary; second, it transforms our training data
+# into feature vectors. The input to fit_transform should be a list of 
+# strings.
+train_data_features = vectorizer.fit_transform(clean_train_review)
+
+# Numpy arrays are easy to work with, so convert the result to an 
+# array
+train_data_features = train_data_features.toarray()
+
+print(train_data_features.shape)
+
+# take a look at the words in vocabulary
+vocab = vectorizer.get_feature_names()
+print(vocab)
+
+# count of each word in a vocabulary
+# Sum up the counts of each vocabulary word
+dist = np.sum(train_data_features, axis=0)
+
+# For each, print the vocabulary word and the number of times it 
+# appears in the training set
+for tag, count in zip(vocab, dist):
+    print(count, tag)
+    
+# training the random forest
+from sklearn.ensemble import RandomForestClassifier
+
+# initialize the random forest classifier with 100 trees
+forest = RandomForestClassifier(n_estimators=100)
+
+# fit the forest to training set, using the bag of words as features and the
+# the sentiment labels as the response variable
+
+forest = forest.fit(train_data_features, train["sentiment"])
+
+# predicting the test set result
+test = pd.read_csv("testData.tsv", delimiter='\t', quoting=3)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+print(test.shape)
+
+test.head()
+# Create an empty list and append the clean reviews one by one
+num_reviews = len(test["review"])
+clean_test_reviews = []
+
+for i in range(0, num_reviews):
+    if (i+1)%1000 == 0:
+        print("review %d of %d" %(i+1, num_reviews))
+    
+    clean_test_reviews.append(review_to_words(test["review"][i]))
+
+# Get a bag of words for the test set, and convert to a numpy array
+test_data_features = vectorizer.transform(clean_test_reviews)
+test_data_features = test_data_features.toarray()
+
+# Use the random forest to make sentiment label predictions
+result = forest.predict(test_data_features)
+
+# Copy the results to a pandas dataframe with an "id" column and
+# a "sentiment" column
+output = pd.DataFrame(data={"id":test["id"], "sentiment":result})
+
+# Use pandas to write the comma-separated output file
+output.to_csv("Bag_of_word_model.csv", index=False, quoting=3)
 
 
 
